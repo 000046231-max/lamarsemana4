@@ -818,7 +818,7 @@
                 <div class="header-info">
                     <h1>CRONOGRAMA DEL PROYECTO</h1>
                     <p>ERP-2025-001 | SAP S/4HANA Implementation</p>
-                    <p>Elaborado por: EDGAR RAMIREZ GUZMAN | GESTION DE PROYECTOS | CONTADURIA PUBLICA | UNIVERSIDAD LAMAR</p>
+                    <p>Elaborado por: EDGAR RAMIREZ GUZMAN | GESTION DE OPERACIONES | CONTADURIA PUBLICA | UNIVERSIDAD LAMAR</p>
                     <div class="header-badges">
                         <span class="badge">📅 Ene 2025 - Mar 2026</span>
                         <span class="badge success">⏱️ 60 Semanas</span>
@@ -1066,6 +1066,48 @@
         const CELL_WIDTH = 28;
         const ROW_HEIGHT = 41;
         let scale = 1;
+
+        // ============================================
+        // 1.5 AUTO-CALCULATE PROGRESS BASED ON TODAY
+        // ============================================
+        function calculateProgress() {
+            const today = new Date();
+            const startDate = new Date(projectData.startDate);
+            
+            projectData.phases.forEach(phase => {
+                phase.tasks.forEach(task => {
+                    if (task.milestone) {
+                        // Milestone: 100% if date passed, 0% otherwise
+                        const milestoneDate = new Date(startDate);
+                        milestoneDate.setDate(milestoneDate.getDate() + (task.start * 7));
+                        task.progress = today >= milestoneDate ? 100 : 0;
+                    } else {
+                        // Regular task: calculate based on elapsed time
+                        const taskStartDate = new Date(startDate);
+                        taskStartDate.setDate(taskStartDate.getDate() + (task.start * 7));
+                        
+                        const taskEndDate = new Date(taskStartDate);
+                        taskEndDate.setDate(taskEndDate.getDate() + (task.duration * 7));
+                        
+                        if (today < taskStartDate) {
+                            // Task hasn't started yet
+                            task.progress = 0;
+                        } else if (today >= taskEndDate) {
+                            // Task is complete
+                            task.progress = 100;
+                        } else {
+                            // Task is in progress - calculate percentage
+                            const totalDuration = taskEndDate - taskStartDate;
+                            const elapsed = today - taskStartDate;
+                            task.progress = Math.round((elapsed / totalDuration) * 100);
+                        }
+                    }
+                });
+            });
+        }
+
+        // Calculate progress on load
+        calculateProgress();
         let pointX = 0;
         let pointY = 0;
         let panning = false;
@@ -1452,6 +1494,7 @@
         // ============================================
 
         window.addEventListener('load', () => {
+            calculateProgress(); // Calculate progress based on today's date
             renderAll();
         });
     </script>
