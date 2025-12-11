@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cronograma Gantt - ERP SAP S/4HANA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #0F172A;
+            --color-surface: #1E293B;
+            --color-surface-hover: #334155;
+            --color-border: #334155;
+            --color-text: #F1F5F9;
+            --color-text-muted: #94A3B8;
+            --color-text-dim: #64748B;
+            --color-primary: #3B82F6;
+            --color-primary-dark: #1D4ED8;
+            --color-critical: #EF4444;
+            --color-critical-glow: rgba(239, 68, 68, 0.3);
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-phase1: #06B6D4;
+            --color-phase2: #10B981;
+            --color-phase3: #F59E0B;
+            --color-phase4: #8B5CF6;
+            --color-phase5: #F97316;
+            --color-phase6: #14B8A6;
+            --color-milestone: #FBBF24;
+            --color-today: #EC4899;
+            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--color-surface) 0%, rgba(30, 41, 59, 0.8) 100%);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: 24px 32px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .header-info h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.025em;
+        }
+
+        .header-info p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            margin-top: 4px;
+        }
+
+        .header-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--color-primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--color-success);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--color-warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .control-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text-muted);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: var(--color-surface-hover);
+            color: var(--color-text);
+            border-color: var(--color-primary);
+        }
+
+        .control-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 200px;
+            padding: 10px 16px 10px 36px;
+            border: 1px solid var(--color-border);
+            background: var(--color-surface);
+            color: var(--color-text);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input::placeholder {
+            color: var(--color-text-dim);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-text-dim);
+            font-size: 0.875rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--color-primary);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
+        }
+
+        /* Gantt Container */
+        .gantt-container {
+            flex: 1;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 500px;
+        }
+
+        /* Gantt Header */
+        .gantt-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border);
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .gantt-title {
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg);
+            color: var(--color-text);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .zoom-level {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        /* Gantt Viewport */
+        .gantt-viewport {
+            flex: 1;
+            overflow: hidden;
+            cursor: grab;
+            position: relative;
+        }
+
+        .gantt-viewport:active {
+            cursor: grabbing;
+        }
+
+        .gantt-content {
+            transform-origin: 0 0;
+            transition: transform 0.1s ease-out;
+            display: flex;
+            min-width: max-content;
+        }
+
+        /* Task List (Left Panel) */
+        .task-list {
+            min-width: 350px;
+            max-width: 350px;
+            border-right: 2px solid var(--color-border);
+            background: var(--color-bg);
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .task-list-header {
+            display: grid;
+            grid-template-columns: 70px 1fr 60px;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--color-surface);
+            border-bottom: 2px solid var(--color-border);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-muted);
+        }
+
+        .task-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 60px;
+            gap: 8px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--color-border);
+            align-items: center;
+            transition: background 0.15s ease;
+            font-size: 0.8rem;
+        }
+
+        .task-row:hover {
+            background: var(--color-surface-hover);
+        }
+
+        .task-row.phase-row {
+            background: linear-gradient(90deg, var(--phase-color) 0%, transparent 100%);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .task-row.phase-row:hover {
+            filter: brightness(1.1);
+        }
+
+        .task-row.hidden {
+            display: none;
+        }
+
+        .task-row.highlight {
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .task-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .task-id.critical {
+            color: var(--color-critical);
+        }
+
+        .task-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-name .toggle-icon {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-size: 0.7rem;
+        }
+
+        .task-name .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .task-duration {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            text-align: right;
+        }
+
+        /* Timeline (Right Panel) */
+        .timeline-panel {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .timeline-header {
+            display: flex;
+            flex-direction: column;
+            background: var(--color-surface);
+            border-bottom: 2px solid var(--color-border);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .months-row {
+            display: flex;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .month-cell {
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-text);
+            border-right: 1px solid var(--color-border);
+            background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+        }
+
+        .weeks-row {
+            display: flex;
+        }
+
+        .week-cell {
+            width: 28px;
+            min-width: 28px;
+            text-align: center;
+            padding: 6px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--color-text-dim);
+            border-right: 1px solid var(--color-border);
+        }
+
+        .week-cell:nth-child(4n) {
+            border-right: 1px solid var(--color-text-dim);
+        }
+
+        /* Timeline Rows */
+        .timeline-rows {
+            position: relative;
+        }
+
+        .timeline-row {
+            height: 41px;
+            border-bottom: 1px solid var(--color-border);
+            position: relative;
+            display: flex;
+        }
+
+        .timeline-row.phase-row {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .timeline-row.hidden {
+            display: none;
+        }
+
+        .grid-cell {
+            width: 28px;
+            min-width: 28px;
+            height: 100%;
+            border-right: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        .grid-cell:nth-child(4n) {
+            border-right: 1px solid var(--color-border);
+        }
+
+        /* Today Line */
+        .today-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--color-today);
+            z-index: 15;
+            box-shadow: 0 0 10px var(--color-today);
+        }
+
+        .today-line::before {
+            content: 'HOY';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-today);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+
+        /* Gantt Bars */
+        .bar-container {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 24px;
+            display: flex;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .gantt-bar {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .gantt-bar:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 20;
+        }
+
+        .gantt-bar.phase1 { background: linear-gradient(135deg, var(--color-phase1) 0%, #0891B2 100%); }
+        .gantt-bar.phase2 { background: linear-gradient(135deg, var(--color-phase2) 0%, #059669 100%); }
+        .gantt-bar.phase3 { background: linear-gradient(135deg, var(--color-phase3) 0%, #D97706 100%); }
+        .gantt-bar.phase4 { background: linear-gradient(135deg, var(--color-phase4) 0%, #7C3AED 100%); }
+        .gantt-bar.phase5 { background: linear-gradient(135deg, var(--color-phase5) 0%, #EA580C 100%); }
+        .gantt-bar.phase6 { background: linear-gradient(135deg, var(--color-phase6) 0%, #0D9488 100%); }
+
+        .gantt-bar.critical {
+            background: linear-gradient(135deg, var(--color-critical) 0%, #DC2626 100%);
+            box-shadow: 0 0 15px var(--color-critical-glow);
+        }
+
+        .gantt-bar .progress-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .gantt-bar .bar-label {
+            position: relative;
+            z-index: 2;
+        }
+
+        .critical-badge {
+            background: white;
+            color: var(--color-critical);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 0.55rem;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+
+        /* Milestone */
+        .milestone {
+            width: 20px;
+            height: 20px;
+            background: var(--color-milestone);
+            transform: rotate(45deg);
+            border-radius: 3px;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .milestone:hover {
+            transform: rotate(45deg) scale(1.2);
+        }
+
+        .milestone.critical {
+            background: var(--color-critical);
+            box-shadow: 0 0 15px var(--color-critical-glow);
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: fixed;
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            max-width: 320px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .tooltip-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            background: var(--color-surface);
+            border-radius: 4px;
+            color: var(--color-primary);
+        }
+
+        .tooltip-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .tooltip-item {
+            font-size: 0.8rem;
+        }
+
+        .tooltip-item .label {
+            color: var(--color-text-muted);
+            font-size: 0.7rem;
+            margin-bottom: 2px;
+        }
+
+        .tooltip-item .value {
+            font-weight: 600;
+        }
+
+        .tooltip-item .value.critical {
+            color: var(--color-critical);
+        }
+
+        .tooltip-item .value.success {
+            color: var(--color-success);
+        }
+
+        .tooltip-progress {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .progress-bar-bg {
+            height: 6px;
+            background: var(--color-border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Legend */
+        .legend-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 12px 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        .legend-color.critical {
+            background: var(--color-critical);
+            box-shadow: 0 0 8px var(--color-critical-glow);
+        }
+
+        .legend-color.milestone {
+            width: 10px;
+            height: 10px;
+            background: var(--color-milestone);
+            transform: rotate(45deg);
+        }
+
+        .legend-color.today {
+            width: 3px;
+            height: 16px;
+            background: var(--color-today);
+            box-shadow: 0 0 8px var(--color-today);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 0.75rem;
+            color: var(--color-text-dim);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-top { flex-direction: column; align-items: flex-start; }
+            .controls { width: 100%; }
+            .search-input { width: 100%; }
+            .task-list { min-width: 250px; max-width: 250px; }
+        }
+
+        /* Print */
+        @media print {
+            .controls, .zoom-controls, .search-container { display: none; }
+            body { background: white; }
+            .main-container { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+
+    <div class="main-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-top">
+                <div class="header-info">
+                    <h1>📊 Cronograma del Proyecto</h1>
+                    <p>ERP-2025-001 | SAP S/4HANA Implementation</p>
+                    <p>Elaborado por: EDGAR RAMIREZ GUZMAN | GESTION DE OPERACIONES | CONTADURIA PUBLICA | UNIVERSIDAD LAMAR</p>
+                    <div class="header-badges">
+                        <span class="badge">📅 Ene 2025 - Mar 2026</span>
+                        <span class="badge success">⏱️ 60 Semanas</span>
+                        <span class="badge warning">💰 $1.2M USD</span>
+                    </div>
+                </div>
+                <div class="controls">
+                    <div class="search-container">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-input" id="searchInput" placeholder="Buscar tarea...">
+                    </div>
+                    <button class="control-btn" id="btnCritical" onclick="toggleCriticalFilter()">
+                        🔴 Ruta Crítica
+                    </button>
+                    <button class="control-btn" id="btnExpandAll" onclick="toggleAllPhases(true)">
+                        ➕ Expandir Todo
+                    </button>
+                    <button class="control-btn" id="btnCollapseAll" onclick="toggleAllPhases(false)">
+                        ➖ Colapsar Todo
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">60</div>
+                <div class="stat-label">Semanas Totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Fases</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">47</div>
+                <div class="stat-label">Tareas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="criticalCount">18</div>
+                <div class="stat-label">Ruta Crítica</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Hitos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="progressPercent">0%</div>
+                <div class="stat-label">Progreso</div>
+            </div>
+        </div>
+
+        <!-- Gantt Chart -->
+        <div class="gantt-container">
+            <div class="gantt-header">
+                <div class="gantt-title">
+                    <span>📈</span>
+                    <span>Diagrama de Gantt</span>
+                </div>
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="zoomIn()">+</button>
+                    <div class="zoom-level" id="zoomLevel">100%</div>
+                    <button class="zoom-btn" onclick="zoomOut()">−</button>
+                    <button class="zoom-btn" onclick="resetZoom()" style="font-size: 0.7rem; width: 40px;">FIT</button>
+                </div>
+            </div>
+
+            <div class="gantt-viewport" id="ganttViewport">
+                <div class="gantt-content" id="ganttContent">
+                    <!-- Task List -->
+                    <div class="task-list" id="taskList">
+                        <div class="task-list-header">
+                            <span>ID</span>
+                            <span>Tarea</span>
+                            <span>Duración</span>
+                        </div>
+                        <div id="taskListBody"></div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="timeline-panel" id="timelinePanel">
+                        <div class="timeline-header">
+                            <div class="months-row" id="monthsRow"></div>
+                            <div class="weeks-row" id="weeksRow"></div>
+                        </div>
+                        <div class="timeline-rows" id="timelineRows"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="legend-bar">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase1);"></div>
+                    <span>Preparación</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase2);"></div>
+                    <span>Blueprint</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase3);"></div>
+                    <span>Realización</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase4);"></div>
+                    <span>Pruebas</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase5);"></div>
+                    <span>Go-Live</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-phase6);"></div>
+                    <span>Soporte</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color critical"></div>
+                    <span>Ruta Crítica</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color milestone"></div>
+                    <span>Hito</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color today"></div>
+                    <span>Hoy</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            Cronograma elaborado siguiendo metodología <strong>ASAP + PMBOK® 7</strong> | 
+            Proyecto ERP-2025-001 | Versión 2.0 Interactiva | Diciembre 2025
+        </footer>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // ============================================
+        // 1. PROJECT DATA
+        // ============================================
+        const projectData = {
+            name: 'Implementación ERP SAP S/4HANA',
+            code: 'ERP-2025-001',
+            startDate: '2025-01-06',
+            totalWeeks: 60,
+            phases: [
+                {
+                    id: 'F1',
+                    name: 'FASE 1: Preparación del Proyecto',
+                    color: 'phase1',
+                    expanded: true,
+                    tasks: [
+                        { id: '1.1.1', name: 'Kickoff y movilización de equipo', start: 0, duration: 2, progress: 100, critical: true },
+                        { id: '1.1.2', name: 'Definición de alcance detallado', start: 2, duration: 2, progress: 100, critical: true },
+                        { id: '1.1.3', name: 'Plan de gestión del proyecto', start: 2, duration: 3, progress: 100, critical: false },
+                        { id: '1.2.1', name: 'Configuración ambiente desarrollo', start: 1, duration: 3, progress: 100, critical: false },
+                        { id: '1.2.2', name: 'Instalación herramientas proyecto', start: 3, duration: 2, progress: 100, critical: false },
+                        { id: 'H1', name: '◆ HITO: Proyecto Iniciado', start: 4, duration: 0, progress: 100, critical: true, milestone: true }
+                    ]
+                },
+                {
+                    id: 'F2',
+                    name: 'FASE 2: Business Blueprint',
+                    color: 'phase2',
+                    expanded: true,
+                    tasks: [
+                        { id: '2.1.1', name: 'Levantamiento procesos Finanzas', start: 5, duration: 3, progress: 80, critical: true },
+                        { id: '2.1.2', name: 'Levantamiento procesos Logística', start: 5, duration: 3, progress: 75, critical: false },
+                        { id: '2.1.3', name: 'Levantamiento procesos Ventas', start: 5, duration: 3, progress: 70, critical: false },
+                        { id: '2.1.4', name: 'Levantamiento procesos RRHH', start: 6, duration: 2, progress: 65, critical: false },
+                        { id: '2.2.1', name: 'Diseño solución FI/CO (Blueprint)', start: 8, duration: 4, progress: 50, critical: true },
+                        { id: '2.2.2', name: 'Diseño solución MM/SD (Blueprint)', start: 8, duration: 4, progress: 45, critical: false },
+                        { id: '2.2.3', name: 'Diseño solución PP/QM (Blueprint)', start: 9, duration: 3, progress: 40, critical: false },
+                        { id: '2.3.1', name: 'Validación y aprobación Blueprint', start: 12, duration: 2, progress: 0, critical: true }
+                    ]
+                },
+                {
+                    id: 'F3',
+                    name: 'FASE 3: Realización',
+                    color: 'phase3',
+                    expanded: true,
+                    tasks: [
+                        { id: '3.1.1', name: 'Configuración módulo FI/CO', start: 14, duration: 6, progress: 0, critical: true },
+                        { id: '3.1.2', name: 'Configuración módulo MM', start: 14, duration: 5, progress: 0, critical: false },
+                        { id: '3.1.3', name: 'Configuración módulo PP', start: 19, duration: 5, progress: 0, critical: false },
+                        { id: '3.1.4', name: 'Configuración módulo SD', start: 14, duration: 5, progress: 0, critical: false },
+                        { id: '3.1.5', name: 'Configuración módulo HCM', start: 14, duration: 4, progress: 0, critical: false },
+                        { id: '3.2.1', name: 'Desarrollo reportes personalizados (25)', start: 20, duration: 6, progress: 0, critical: true },
+                        { id: '3.2.2', name: 'Desarrollo formularios e interfaces', start: 20, duration: 4, progress: 0, critical: false },
+                        { id: '3.3.1', name: 'Integración con ADP (Nómina)', start: 18, duration: 4, progress: 0, critical: true },
+                        { id: '3.3.2', name: 'Integración con Shopify (E-commerce)', start: 19, duration: 4, progress: 0, critical: false },
+                        { id: 'H2', name: '◆ HITO: Sistema Configurado', start: 26, duration: 0, progress: 0, critical: true, milestone: true }
+                    ]
+                },
+                {
+                    id: 'F4',
+                    name: 'FASE 4: Pruebas y Migración',
+                    color: 'phase4',
+                    expanded: true,
+                    tasks: [
+                        { id: '4.1.1', name: 'Pruebas unitarias por módulo', start: 26, duration: 3, progress: 0, critical: false },
+                        { id: '4.1.2', name: 'Pruebas de integración end-to-end', start: 29, duration: 4, progress: 0, critical: true },
+                        { id: '4.1.3', name: 'UAT - Pruebas de aceptación usuario', start: 33, duration: 3, progress: 0, critical: true },
+                        { id: '4.2.1', name: 'Migración de datos maestros', start: 29, duration: 4, progress: 0, critical: true },
+                        { id: '4.2.2', name: 'Migración datos transaccionales (3 años)', start: 33, duration: 3, progress: 0, critical: false },
+                        { id: '4.2.3', name: 'Validación y reconciliación de datos', start: 36, duration: 2, progress: 0, critical: true },
+                        { id: 'H3', name: '◆ HITO: UAT Completado', start: 36, duration: 0, progress: 0, critical: true, milestone: true }
+                    ]
+                },
+                {
+                    id: 'F5',
+                    name: 'FASE 5: Preparación Final y Go-Live',
+                    color: 'phase5',
+                    expanded: true,
+                    tasks: [
+                        { id: '5.1.1', name: 'Capacitación usuarios clave (35)', start: 36, duration: 3, progress: 0, critical: true },
+                        { id: '5.1.2', name: 'Capacitación usuarios finales (150)', start: 39, duration: 4, progress: 0, critical: false },
+                        { id: '5.1.3', name: 'Elaboración manuales de usuario', start: 36, duration: 2, progress: 0, critical: false },
+                        { id: '5.2.1', name: 'Ejecución plan de cutover', start: 43, duration: 1, progress: 0, critical: true },
+                        { id: '5.2.2', name: 'Activación ambiente productivo', start: 44, duration: 1, progress: 0, critical: true },
+                        { id: 'H4', name: '🚀 GO-LIVE', start: 45, duration: 0, progress: 0, critical: true, milestone: true }
+                    ]
+                },
+                {
+                    id: 'F6',
+                    name: 'FASE 6: Soporte Post-Implementación',
+                    color: 'phase6',
+                    expanded: true,
+                    tasks: [
+                        { id: '6.1.1', name: 'Soporte hipercare intensivo', start: 46, duration: 4, progress: 0, critical: false },
+                        { id: '6.1.2', name: 'Resolución de incidentes y ajustes', start: 50, duration: 8, progress: 0, critical: false },
+                        { id: '6.2.1', name: 'Entrega documentación técnica', start: 50, duration: 2, progress: 0, critical: false },
+                        { id: '6.2.2', name: 'Capacitación equipo soporte interno', start: 52, duration: 3, progress: 0, critical: false },
+                        { id: '6.3.1', name: 'Documentación lecciones aprendidas', start: 56, duration: 2, progress: 0, critical: false },
+                        { id: 'H5', name: '✅ Cierre formal del proyecto', start: 58, duration: 0, progress: 0, critical: false, milestone: true }
+                    ]
+                }
+            ]
+        };
+
+        const CELL_WIDTH = 28;
+        const ROW_HEIGHT = 41;
+        let scale = 1;
+        let pointX = 0;
+        let pointY = 0;
+        let panning = false;
+        let startX = 0;
+        let startY = 0;
+        let criticalFilterActive = false;
+        let searchTerm = '';
+
+        // ============================================
+        // 2. RENDER FUNCTIONS
+        // ============================================
+        
+        function getWeekDate(weekIndex) {
+            const start = new Date(projectData.startDate);
+            start.setDate(start.getDate() + (weekIndex * 7));
+            return start;
+        }
+
+        function formatDate(date) {
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+        }
+
+        function renderMonthsHeader() {
+            const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let html = '';
+            let currentDate = new Date(projectData.startDate);
+            let currentMonth = -1;
+            let monthWeeks = 0;
+            let monthsData = [];
+
+            for (let i = 0; i < projectData.totalWeeks; i++) {
+                const month = currentDate.getMonth();
+                if (month !== currentMonth) {
+                    if (currentMonth !== -1) {
+                        monthsData.push({ month: currentMonth, year: currentDate.getFullYear() - (currentMonth === 0 ? 0 : 0), weeks: monthWeeks });
+                    }
+                    currentMonth = month;
+                    monthWeeks = 0;
+                }
+                monthWeeks++;
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+            monthsData.push({ month: currentMonth, year: currentDate.getFullYear(), weeks: monthWeeks });
+
+            // Fix year calculation
+            let year = new Date(projectData.startDate).getFullYear();
+            let prevMonth = new Date(projectData.startDate).getMonth();
+            
+            monthsData.forEach((m, idx) => {
+                if (idx > 0 && m.month < prevMonth) year++;
+                prevMonth = m.month;
+                html += `<div class="month-cell" style="width: ${m.weeks * CELL_WIDTH}px">${months[m.month]} ${year}</div>`;
+            });
+
+            document.getElementById('monthsRow').innerHTML = html;
+        }
+
+        function renderWeeksHeader() {
+            let html = '';
+            for (let i = 1; i <= projectData.totalWeeks; i++) {
+                html += `<div class="week-cell">${i}</div>`;
+            }
+            document.getElementById('weeksRow').innerHTML = html;
+        }
+
+        function renderTaskList() {
+            let html = '';
+            projectData.phases.forEach((phase, phaseIdx) => {
+                // Phase row
+                html += `
+                    <div class="task-row phase-row" style="--phase-color: var(--color-${phase.color})" 
+                         data-phase="${phaseIdx}" onclick="togglePhase(${phaseIdx})">
+                        <span class="task-id">${phase.id}</span>
+                        <span class="task-name">
+                            <span class="toggle-icon ${phase.expanded ? '' : 'collapsed'}">▼</span>
+                            ${phase.name}
+                        </span>
+                        <span class="task-duration">${phase.tasks.length} tareas</span>
+                    </div>
+                `;
+
+                // Tasks
+                phase.tasks.forEach(task => {
+                    const isHidden = !phase.expanded || (criticalFilterActive && !task.critical);
+                    const matchesSearch = !searchTerm || task.name.toLowerCase().includes(searchTerm) || task.id.toLowerCase().includes(searchTerm);
+                    const highlight = searchTerm && matchesSearch;
+                    
+                    html += `
+                        <div class="task-row ${isHidden || !matchesSearch ? 'hidden' : ''} ${highlight ? 'highlight' : ''}" 
+                             data-phase="${phaseIdx}" data-task-id="${task.id}">
+                            <span class="task-id ${task.critical ? 'critical' : ''}">${task.id}</span>
+                            <span class="task-name">${task.name}</span>
+                            <span class="task-duration">${task.duration > 0 ? task.duration + ' sem' : 'Hito'}</span>
+                        </div>
+                    `;
+                });
+            });
+            document.getElementById('taskListBody').innerHTML = html;
+        }
+
+        function renderTimelineRows() {
+            let html = '';
+            
+            // Calculate today's position
+            const today = new Date();
+            const startDate = new Date(projectData.startDate);
+            const daysDiff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            const todayWeek = Math.floor(daysDiff / 7);
+            const todayPosition = todayWeek * CELL_WIDTH + (daysDiff % 7) / 7 * CELL_WIDTH;
+
+            projectData.phases.forEach((phase, phaseIdx) => {
+                // Phase row
+                html += `<div class="timeline-row phase-row" data-phase="${phaseIdx}">`;
+                for (let i = 0; i < projectData.totalWeeks; i++) {
+                    html += `<div class="grid-cell"></div>`;
+                }
+                html += `</div>`;
+
+                // Task rows
+                phase.tasks.forEach(task => {
+                    const isHidden = !phase.expanded || (criticalFilterActive && !task.critical);
+                    const matchesSearch = !searchTerm || task.name.toLowerCase().includes(searchTerm) || task.id.toLowerCase().includes(searchTerm);
+                    
+                    html += `<div class="timeline-row ${isHidden || !matchesSearch ? 'hidden' : ''}" data-phase="${phaseIdx}" data-task-id="${task.id}">`;
+                    
+                    // Grid cells
+                    for (let i = 0; i < projectData.totalWeeks; i++) {
+                        html += `<div class="grid-cell"></div>`;
+                    }
+
+                    // Bar or milestone
+                    const left = task.start * CELL_WIDTH;
+                    const width = Math.max(task.duration * CELL_WIDTH, CELL_WIDTH);
+
+                    if (task.milestone) {
+                        html += `
+                            <div class="bar-container" style="left: ${left}px">
+                                <div class="milestone ${task.critical ? 'critical' : ''}" 
+                                     data-task='${JSON.stringify(task)}' data-phase="${phase.color}"></div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="bar-container" style="left: ${left}px">
+                                <div class="gantt-bar ${task.critical ? 'critical' : phase.color}" 
+                                     style="width: ${width}px" data-task='${JSON.stringify(task)}' data-phase="${phase.color}">
+                                    <div class="progress-fill" style="width: ${task.progress}%"></div>
+                                    <span class="bar-label">${task.duration > 3 ? task.id : ''}</span>
+                                    ${task.critical ? '<span class="critical-badge">RC</span>' : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += `</div>`;
+                });
+            });
+
+            // Today line
+            if (todayWeek >= 0 && todayWeek < projectData.totalWeeks) {
+                html += `<div class="today-line" style="left: ${todayPosition}px"></div>`;
+            }
+
+            document.getElementById('timelineRows').innerHTML = html;
+        }
+
+        function renderAll() {
+            renderMonthsHeader();
+            renderWeeksHeader();
+            renderTaskList();
+            renderTimelineRows();
+            updateStats();
+            setupTooltips();
+        }
+
+        function updateStats() {
+            let criticalCount = 0;
+            let totalProgress = 0;
+            let totalTasks = 0;
+
+            projectData.phases.forEach(phase => {
+                phase.tasks.forEach(task => {
+                    if (task.critical) criticalCount++;
+                    if (!task.milestone) {
+                        totalProgress += task.progress;
+                        totalTasks++;
+                    }
+                });
+            });
+
+            document.getElementById('criticalCount').textContent = criticalCount;
+            document.getElementById('progressPercent').textContent = Math.round(totalProgress / totalTasks) + '%';
+        }
+
+        // ============================================
+        // 3. INTERACTIONS
+        // ============================================
+
+        function togglePhase(phaseIdx) {
+            projectData.phases[phaseIdx].expanded = !projectData.phases[phaseIdx].expanded;
+            renderTaskList();
+            renderTimelineRows();
+            
+            // Update toggle icon
+            const phaseRow = document.querySelector(`.task-row.phase-row[data-phase="${phaseIdx}"]`);
+            if (phaseRow) {
+                const icon = phaseRow.querySelector('.toggle-icon');
+                icon.classList.toggle('collapsed', !projectData.phases[phaseIdx].expanded);
+            }
+        }
+
+        function toggleAllPhases(expand) {
+            projectData.phases.forEach(phase => phase.expanded = expand);
+            renderTaskList();
+            renderTimelineRows();
+        }
+
+        function toggleCriticalFilter() {
+            criticalFilterActive = !criticalFilterActive;
+            document.getElementById('btnCritical').classList.toggle('active', criticalFilterActive);
+            renderTaskList();
+            renderTimelineRows();
+        }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchTerm = e.target.value.toLowerCase();
+            renderTaskList();
+            renderTimelineRows();
+        });
+
+        // ============================================
+        // 4. ZOOM & PAN
+        // ============================================
+
+        const viewport = document.getElementById('ganttViewport');
+        const content = document.getElementById('ganttContent');
+
+        function setTransform() {
+            content.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+            document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
+        }
+
+        function zoomIn() {
+            scale = Math.min(scale + 0.15, 2);
+            setTransform();
+        }
+
+        function zoomOut() {
+            scale = Math.max(scale - 0.15, 0.5);
+            setTransform();
+        }
+
+        function resetZoom() {
+            scale = 1;
+            pointX = 0;
+            pointY = 0;
+            setTransform();
+        }
+
+        // Mouse pan
+        viewport.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.gantt-bar, .milestone')) return;
+            panning = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            viewport.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mouseup', () => {
+            panning = false;
+            viewport.style.cursor = 'grab';
+        });
+
+        viewport.addEventListener('mousemove', (e) => {
+            if (!panning) return;
+            pointX = e.clientX - startX;
+            pointY = e.clientY - startY;
+            setTransform();
+        });
+
+        // Touch pan
+        let lastTouchX = 0, lastTouchY = 0;
+
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                panning = true;
+            }
+        });
+
+        viewport.addEventListener('touchmove', (e) => {
+            if (panning && e.touches.length === 1) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - lastTouchX;
+                const dy = e.touches[0].clientY - lastTouchY;
+                pointX += dx;
+                pointY += dy;
+                lastTouchX = e.touches[0].clientX;
+                lastTouchY = e.touches[0].clientY;
+                setTransform();
+            }
+        }, { passive: false });
+
+        viewport.addEventListener('touchend', () => panning = false);
+
+        // Wheel zoom
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            scale = Math.max(0.5, Math.min(2, scale + delta));
+            setTransform();
+        }, { passive: false });
+
+        // ============================================
+        // 5. TOOLTIPS
+        // ============================================
+
+        const tooltip = document.getElementById('tooltip');
+
+        function setupTooltips() {
+            document.querySelectorAll('.gantt-bar, .milestone').forEach(el => {
+                el.addEventListener('mouseenter', showTooltip);
+                el.addEventListener('mouseleave', hideTooltip);
+                el.addEventListener('mousemove', moveTooltip);
+            });
+        }
+
+        function showTooltip(e) {
+            const task = JSON.parse(e.target.dataset.task);
+            const startDate = getWeekDate(task.start);
+            const endDate = getWeekDate(task.start + task.duration);
+
+            tooltip.innerHTML = `
+                <div class="tooltip-header">
+                    <span class="tooltip-title">${task.name}</span>
+                    <span class="tooltip-id">${task.id}</span>
+                </div>
+                <div class="tooltip-grid">
+                    <div class="tooltip-item">
+                        <div class="label">📅 Inicio</div>
+                        <div class="value">${formatDate(startDate)}</div>
+                    </div>
+                    <div class="tooltip-item">
+                        <div class="label">📅 Fin</div>
+                        <div class="value">${task.duration > 0 ? formatDate(endDate) : 'Hito'}</div>
+                    </div>
+                    <div class="tooltip-item">
+                        <div class="label">⏱️ Duración</div>
+                        <div class="value">${task.duration > 0 ? task.duration + ' semanas' : 'Hito'}</div>
+                    </div>
+                    <div class="tooltip-item">
+                        <div class="label">🎯 Estado</div>
+                        <div class="value ${task.critical ? 'critical' : 'success'}">${task.critical ? '🔴 Ruta Crítica' : '🟢 Con holgura'}</div>
+                    </div>
+                </div>
+                ${!task.milestone ? `
+                    <div class="tooltip-progress">
+                        <div class="label">📊 Progreso: <strong>${task.progress}%</strong></div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${task.progress}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('visible');
+        }
+
+        function moveTooltip(e) {
+            const x = Math.min(e.pageX + 15, window.innerWidth - 340);
+            const y = Math.min(e.pageY + 15, window.innerHeight - 200);
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+        }
+
+        // ============================================
+        // 6. INIT
+        // ============================================
+
+        window.addEventListener('load', () => {
+            renderAll();
+        });
+    </script>
+</body>
+</html>
